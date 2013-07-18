@@ -32,6 +32,9 @@ import junit.framework.TestListener;
 import org.xmlpull.v1.XmlSerializer;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.util.Log;
 import android.util.Xml;
 
@@ -74,12 +77,15 @@ public class JUnitReportListener implements TestListener {
     private static final String TAG_CASE = "testcase";
     private static final String TAG_ERROR = "error";
     private static final String TAG_FAILURE = "failure";
+    private static final String TAG_PROPERTIES = "properties";
+    private static final String TAG_PROPERTY = "property";
 
     private static final String ATTRIBUTE_NAME = "name";
     private static final String ATTRIBUTE_CLASS = "classname";
     private static final String ATTRIBUTE_TYPE = "type";
     private static final String ATTRIBUTE_MESSAGE = "message";
     private static final String ATTRIBUTE_TIME = "time";
+    private static final String ATTRIBUTE_VALUE = "value";
 
     // With thanks to org.apache.tools.ant.taskdefs.optional.junit.JUnitTestRunner.
     // Trimmed some entries, added others for Android.
@@ -169,6 +175,7 @@ public class JUnitReportListener implements TestListener {
 
             mSerializer.startTag("", TAG_SUITE);
             mSerializer.attribute("", ATTRIBUTE_NAME, suiteName);
+            addDeviceInfo();
             mCurrentSuite = suiteName;
         }
     }
@@ -344,5 +351,46 @@ public class JUnitReportListener implements TestListener {
 
             super.println(s);
         }
+    }
+    private void addDeviceInfo(){
+      try
+        {
+        mSerializer.startTag("", TAG_PROPERTIES);
+        addProperty("deviceOS", android.os.Build.VERSION.RELEASE);
+        addProperty("deviceManufacturer", android.os.Build.MANUFACTURER);
+        addProperty("deviceBrand", android.os.Build.BRAND);
+        addProperty("deviceModel", android.os.Build.MODEL);
+        addProperty("appVersion", getVersion());        
+        mSerializer.endTag("", TAG_PROPERTIES);
+        mSerializer.flush();
+        }
+     catch (IOException e)
+        {
+        Log.e(LOG_TAG, safeMessage(e));
+        }
+    }
+    private void addProperty(String name, String value){
+    try
+        {
+        mSerializer.startTag("", TAG_PROPERTY);
+        mSerializer.attribute("", ATTRIBUTE_NAME, name);
+        mSerializer.attribute("", ATTRIBUTE_VALUE, value);        
+        mSerializer.endTag("", TAG_PROPERTY);
+        mSerializer.flush();
+        }
+    catch (IOException e)
+        {
+        Log.e(LOG_TAG, safeMessage(e));
+        }
+    }
+    public String getVersion( ) {
+        String version = "";
+        try {
+            PackageInfo pInfo =  mTargetContext.getPackageManager().getPackageInfo( mTargetContext.getPackageName(), PackageManager.GET_META_DATA);
+            version = pInfo.versionName;
+        } catch (NameNotFoundException e1) {
+            Log.e(LOG_TAG, safeMessage(e1));
+        }
+        return version;
     }
 }
