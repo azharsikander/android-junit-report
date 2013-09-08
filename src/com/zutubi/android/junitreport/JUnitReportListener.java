@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Locale;
 
 import junit.framework.AssertionFailedError;
@@ -39,32 +40,24 @@ import android.util.Log;
 import android.util.Xml;
 
 /**
- * Custom test listener that outputs test results to XML files. The files
- * use a similar format to the Ant JUnit task XML formatter, with a few of
- * caveats:
+ * Custom test listener that outputs test results to XML files. The files use a similar format to the Ant JUnit task XML formatter, with a
+ * few of caveats:
  * <ul>
- *   <li>
- *     By default, multiple suites are all placed in a single file under a root
- *     &lt;testsuites&gt; element.  In multiFile mode a separate file is
- *     created for each suite, which may be more compatible with existing
- *     tools.
- *   </li>
- *   <li>
- *     Redundant information about the number of nested cases within a suite is
- *     omitted.
- *   </li>
- *   <li>
- *     Durations are omitted from suites.
- *   </li>
- *   <li>
- *     Neither standard output nor system properties are included.
- *   </li>
+ * <li>
+ * By default, multiple suites are all placed in a single file under a root &lt;testsuites&gt; element. In multiFile mode a separate file is
+ * created for each suite, which may be more compatible with existing tools.</li>
+ * <li>
+ * Redundant information about the number of nested cases within a suite is omitted.</li>
+ * <li>
+ * Durations are omitted from suites.</li>
+ * <li>
+ * Neither standard output nor system properties are included.</li>
  * </ul>
- * The differences mainly revolve around making this reporting as lightweight as
- * possible. The report is streamed as the tests run, making it impossible to,
- * e.g. include the case count in a &lt;testsuite&gt; element.
+ * The differences mainly revolve around making this reporting as lightweight as possible. The report is streamed as the tests run, making
+ * it impossible to, e.g. include the case count in a &lt;testsuite&gt; element.
  */
-public class JUnitReportListener implements TestListener {
+public class JUnitReportListener implements TestListener
+    {
     private static final String LOG_TAG = JUnitReportListener.class.getSimpleName();
 
     private static final String ENCODING_UTF_8 = "utf-8";
@@ -93,11 +86,15 @@ public class JUnitReportListener implements TestListener {
             "junit.framework.TestCase", "junit.framework.TestResult",
             "junit.framework.TestSuite",
             "junit.framework.Assert.", // don't filter AssertionFailure
-            "java.lang.reflect.Method.invoke(", "sun.reflect.",
+            "java.lang.reflect.Method.invoke(",
+            "sun.reflect.",
             // JUnit 4 support:
-            "org.junit.", "junit.framework.JUnit4TestAdapter", " more",
+            "org.junit.",
+            "junit.framework.JUnit4TestAdapter",
+            " more",
             // Added for Android
-            "android.test.", "android.app.Instrumentation",
+            "android.test.",
+            "android.app.Instrumentation",
             "java.lang.reflect.Method.invokeNative",
     };
 
@@ -109,25 +106,35 @@ public class JUnitReportListener implements TestListener {
     private FileOutputStream mOutputStream;
     private XmlSerializer mSerializer;
     private String mCurrentSuite;
+    private LogHandler lh;
+    //private ArrayList<String> logMessages;
 
     // simple time tracking
     private boolean mTimeAlreadyWritten = false;
     private long mTestStartTime;
+    
+    private static ArrayList<String> logMessages = new ArrayList<String>();
 
     /**
      * Creates a new listener.
-     *
-     * @param context context of the test application
-     * @param targetContext context of the application under test
-     * @param reportFile name of the report file(s) to create
-     * @param reportDir  path of the directory under which to write files
-     *                  (may be null in which case files are written under
-     *                  the context using {@link Context#openFileOutput(String, int)}).
-     * @param filterTraces if true, stack traces will have common noise (e.g.
-     *            framework methods) omitted for clarity
-     * @param multiFile if true, use a separate file for each test suite
+     * 
+     * @param context
+     *            context of the test application
+     * @param targetContext
+     *            context of the application under test
+     * @param reportFile
+     *            name of the report file(s) to create
+     * @param reportDir
+     *            path of the directory under which to write files (may be null in which case files are written under the context using
+     *            {@link Context#openFileOutput(String, int)}).
+     * @param filterTraces
+     *            if true, stack traces will have common noise (e.g. framework methods) omitted for clarity
+     * @param multiFile
+     *            if true, use a separate file for each test suite
      */
-    public JUnitReportListener(Context context, Context targetContext, String reportFile, String reportDir, boolean filterTraces, boolean multiFile) {
+    public JUnitReportListener(Context context, Context targetContext, String reportFile, String reportDir, boolean filterTraces,
+            boolean multiFile)
+        {
         Log.i(LOG_TAG, "Listener created with arguments:\n" +
                 "  report file  : '" + reportFile + "'\n" +
                 "  report dir   : '" + reportDir + "'\n" +
@@ -139,12 +146,15 @@ public class JUnitReportListener implements TestListener {
         this.mReportDir = reportDir;
         this.mFilterTraces = filterTraces;
         this.mMultiFile = multiFile;
-    }
+        }
 
     @Override
-    public void startTest(Test test) {
-        try {
-            if (test instanceof TestCase) {
+    public void startTest(Test test)
+        {
+        try
+            {
+            if (test instanceof TestCase)
+                {
                 TestCase testCase = (TestCase) test;
                 checkForNewSuite(testCase);
                 mSerializer.startTag("", TAG_CASE);
@@ -153,23 +163,39 @@ public class JUnitReportListener implements TestListener {
 
                 mTimeAlreadyWritten = false;
                 mTestStartTime = System.currentTimeMillis();
-            }
-        } catch (IOException e) {
-            Log.e(LOG_TAG, safeMessage(e));
-        }
-    }
-
-    private void checkForNewSuite(TestCase testCase) throws IOException {
-        String suiteName = testCase.getClass().getName();
-        if (mCurrentSuite == null || !mCurrentSuite.equals(suiteName)) {
-            if (mCurrentSuite != null) {
-                if (mMultiFile) {
-                    close();
-                } else {
-                    mSerializer.endTag("", TAG_SUITE);
-                    mSerializer.flush();
+                logMessages.clear();
+                /*lh = new LogHandler()
+                    {
+                        public void onLineAdd(String line)
+                            {
+                            logMessages.add(line);
+                            }
+                    };*/
                 }
             }
+        catch (IOException e)
+            {
+            Log.e(LOG_TAG, safeMessage(e));
+            }
+        }
+
+    private void checkForNewSuite(TestCase testCase) throws IOException
+        {
+        String suiteName = testCase.getClass().getName();
+        if (mCurrentSuite == null || !mCurrentSuite.equals(suiteName))
+            {
+            if (mCurrentSuite != null)
+                {
+                if (mMultiFile)
+                    {
+                    close();
+                    }
+                else
+                    {
+                    mSerializer.endTag("", TAG_SUITE);
+                    mSerializer.flush();
+                    }
+                }
 
             openIfRequired(suiteName);
 
@@ -177,83 +203,105 @@ public class JUnitReportListener implements TestListener {
             mSerializer.attribute("", ATTRIBUTE_NAME, suiteName);
             addDeviceInfo();
             mCurrentSuite = suiteName;
+            }
         }
-    }
 
-    private void openIfRequired(String suiteName) {
-        try {
-            if (mSerializer == null) {
+    private void openIfRequired(String suiteName)
+        {
+        try
+            {
+            if (mSerializer == null)
+                {
                 mOutputStream = openOutputStream(resolveFileName(suiteName));
                 mSerializer = Xml.newSerializer();
                 mSerializer.setOutput(mOutputStream, ENCODING_UTF_8);
                 mSerializer.startDocument(ENCODING_UTF_8, true);
-                if (!mMultiFile) {
+                if (!mMultiFile)
+                    {
                     mSerializer.startTag("", TAG_SUITES);
+                    }
                 }
             }
-        } catch (IOException e) {
+        catch (IOException e)
+            {
             Log.e(LOG_TAG, safeMessage(e));
             throw new RuntimeException("Unable to open serializer: " + e.getMessage(), e);
+            }
         }
-    }
 
-    private String resolveFileName(String suiteName) {
+    private String resolveFileName(String suiteName)
+        {
         String fileName = mReportFile;
-        if (mMultiFile) {
+        if (mMultiFile)
+            {
             fileName = fileName.replace(TOKEN_SUITE, suiteName);
-        }
+            }
         return fileName;
-    }
+        }
 
-    private FileOutputStream openOutputStream(String fileName) throws IOException {
-        if (mReportDir == null) {
+    private FileOutputStream openOutputStream(String fileName) throws IOException
+        {
+        if (mReportDir == null)
+            {
             Log.d(LOG_TAG, "No reportDir specified. Opening report file '" + fileName + "' in internal storage of app under test");
             return mTargetContext.openFileOutput(fileName, Context.MODE_WORLD_READABLE);
-        } else {
-            if (mReportDir.contains(TOKEN_EXTERNAL)) {
+            }
+        else
+            {
+            if (mReportDir.contains(TOKEN_EXTERNAL))
+                {
                 File externalDir = Compatibility.getExternalFilesDir(mTargetContext, null);
-                if (externalDir == null) {
-                    Log.e(LOG_TAG, "reportDir references external storage, but external storage is not available (check mounting and permissions)");
+                if (externalDir == null)
+                    {
+                    Log.e(LOG_TAG,
+                            "reportDir references external storage, but external storage is not available (check mounting and permissions)");
                     throw new IOException("Cannot access external storage");
-                }
+                    }
 
                 String externalPath = externalDir.getAbsolutePath();
-                if (externalPath.endsWith("/")) {
+                if (externalPath.endsWith("/"))
+                    {
                     externalPath = externalPath.substring(0, externalPath.length() - 1);
-                }
+                    }
 
                 mReportDir = mReportDir.replace(TOKEN_EXTERNAL, externalPath);
-            }
+                }
 
             ensureDirectoryExists(mReportDir);
 
             File outputFile = new File(mReportDir, fileName);
             Log.d(LOG_TAG, "Opening report file '" + outputFile.getAbsolutePath() + "'");
             return new FileOutputStream(outputFile);
+            }
         }
-    }
 
-    private void ensureDirectoryExists(String path) throws IOException {
+    private void ensureDirectoryExists(String path) throws IOException
+        {
         File dir = new File(path);
-        if (!dir.isDirectory() && !dir.mkdirs()) {
+        if (!dir.isDirectory() && !dir.mkdirs())
+            {
             final String message = "Cannot create directory '" + path + "'";
             Log.e(LOG_TAG, message);
             throw new IOException(message);
+            }
         }
-    }
 
     @Override
-    public void addError(Test test, Throwable error) {
+    public void addError(Test test, Throwable error)
+        {
         addProblem(TAG_ERROR, error);
-    }
+        }
 
     @Override
-    public void addFailure(Test test, AssertionFailedError error) {
+    public void addFailure(Test test, AssertionFailedError error)
+        {
         addProblem(TAG_FAILURE, error);
-    }
+        }
 
-    private void addProblem(String tag, Throwable error) {
-        try {
+    private void addProblem(String tag, Throwable error)
+        {
+        try
+            {
             recordTestTime();
 
             mSerializer.startTag("", tag);
@@ -264,133 +312,205 @@ public class JUnitReportListener implements TestListener {
             mSerializer.text(w.toString());
             mSerializer.endTag("", tag);
             mSerializer.flush();
-        } catch (IOException e) {
+            }
+        catch (IOException e)
+            {
             Log.e(LOG_TAG, safeMessage(e));
+            }
         }
-    }
 
-    private void recordTestTime() throws IOException {
-        if (!mTimeAlreadyWritten) {
+    private void recordTestTime() throws IOException
+        {
+        if (!mTimeAlreadyWritten)
+            {
             mTimeAlreadyWritten = true;
             mSerializer.attribute("", ATTRIBUTE_TIME, String.format(Locale.ENGLISH, "%.3f",
                     (System.currentTimeMillis() - mTestStartTime) / 1000.));
+            }
         }
-    }
 
     @Override
-    public void endTest(Test test) {
-        try {
-            if (test instanceof TestCase) {
+    public void endTest(Test test)
+        {
+        try
+            {
+            if (test instanceof TestCase)
+                {
                 recordTestTime();
+                addSystemOut(logMessages);
                 mSerializer.endTag("", TAG_CASE);
                 mSerializer.flush();
+                //lh.stop();
+                logMessages.clear();
+                }
             }
-        } catch (IOException e) {
+        catch (IOException e)
+            {
             Log.e(LOG_TAG, safeMessage(e));
+            }
         }
-    }
 
     /**
-     * Releases all resources associated with this listener.  Must be called
-     * when the listener is finished with.
+     * Releases all resources associated with this listener. Must be called when the listener is finished with.
      */
-    public void close() {
-        if (mSerializer != null) {
-            try {
+    public void close()
+        {
+        if (mSerializer != null)
+            {
+            try
+                {
                 // Do this just in case endTest() was not called due to a crash in native code.
-                if (TAG_CASE.equals(mSerializer.getName())) {
+                if (TAG_CASE.equals(mSerializer.getName()))
+                    {
                     mSerializer.endTag("", TAG_CASE);
-                }
+                    }
 
-                if (mCurrentSuite != null) {
+                if (mCurrentSuite != null)
+                    {
                     mSerializer.endTag("", TAG_SUITE);
-                }
+                    }
 
-                if (!mMultiFile) {
+                if (!mMultiFile)
+                    {
                     mSerializer.endTag("", TAG_SUITES);
-                }
+                    }
                 mSerializer.endDocument();
                 mSerializer.flush();
                 mSerializer = null;
-            } catch (IOException e) {
+                }
+            catch (IOException e)
+                {
                 Log.e(LOG_TAG, safeMessage(e));
-            }
-        }
-
-        if (mOutputStream != null) {
-            try {
-                mOutputStream.close();
-                mOutputStream = null;
-            } catch (IOException e) {
-                Log.e(LOG_TAG, safeMessage(e));
-            }
-        }
-    }
-
-    private String safeMessage(Throwable error) {
-        String message = error.getMessage();
-        return error.getClass().getName() + ": " + (message == null ? "<null>" : message);
-    }
-
-    /**
-     * Wrapper around a print writer that filters out common noise from stack
-     * traces, making it easier to see the actual failure.
-     */
-    private static class FilteringWriter extends PrintWriter {
-        public FilteringWriter(Writer out) {
-            super(out);
-        }
-
-        @Override
-        public void println(String s) {
-            for (String filtered : DEFAULT_TRACE_FILTERS) {
-                if (s.contains(filtered)) {
-                    return;
                 }
             }
 
+        if (mOutputStream != null)
+            {
+            try
+                {
+                mOutputStream.close();
+                mOutputStream = null;
+                }
+            catch (IOException e)
+                {
+                Log.e(LOG_TAG, safeMessage(e));
+                }
+            }
+        }
+
+    private String safeMessage(Throwable error)
+        {
+        String message = error.getMessage();
+        return error.getClass().getName() + ": " + (message == null ? "<null>" : message);
+        }
+
+    /**
+     * Wrapper around a print writer that filters out common noise from stack traces, making it easier to see the actual failure.
+     */
+    private static class FilteringWriter extends PrintWriter
+        {
+        public FilteringWriter(Writer out)
+            {
+            super(out);
+            }
+
+        @Override
+        public void println(String s)
+            {
+            for (String filtered : DEFAULT_TRACE_FILTERS)
+                {
+                if (s.contains(filtered))
+                    {
+                    return;
+                    }
+                }
+
             super.println(s);
+            }
         }
-    }
-    private void addDeviceInfo(){
-      try
+
+    private void addDeviceInfo()
         {
-        mSerializer.startTag("", TAG_PROPERTIES);
-        addProperty("deviceOS", android.os.Build.VERSION.RELEASE);
-        addProperty("deviceManufacturer", android.os.Build.MANUFACTURER);
-        addProperty("deviceBrand", android.os.Build.BRAND);
-        addProperty("deviceModel", android.os.Build.MODEL);
-        addProperty("appVersion", getVersion());        
-        mSerializer.endTag("", TAG_PROPERTIES);
-        mSerializer.flush();
+        try
+            {
+            mSerializer.startTag("", TAG_PROPERTIES);
+            addProperty("deviceOS", android.os.Build.VERSION.RELEASE);
+            addProperty("deviceManufacturer", android.os.Build.MANUFACTURER);
+            addProperty("deviceBrand", android.os.Build.BRAND);
+            addProperty("deviceModel", android.os.Build.MODEL);
+            addProperty("appVersion", getVersion());
+            mSerializer.endTag("", TAG_PROPERTIES);
+            mSerializer.flush();
+            }
+        catch (IOException e)
+            {
+            Log.e(LOG_TAG, safeMessage(e));
+            }
         }
-     catch (IOException e)
+
+    private void addProperty(String name, String value)
         {
-        Log.e(LOG_TAG, safeMessage(e));
+        try
+            {
+            mSerializer.startTag("", TAG_PROPERTY);
+            mSerializer.attribute("", ATTRIBUTE_NAME, name);
+            mSerializer.attribute("", ATTRIBUTE_VALUE, value);
+            mSerializer.endTag("", TAG_PROPERTY);
+            mSerializer.flush();
+            }
+        catch (IOException e)
+            {
+            Log.e(LOG_TAG, safeMessage(e));
+            }
         }
-    }
-    private void addProperty(String name, String value){
-    try
+    
+    public void addSystemOut(ArrayList<String> logMsgs)
         {
-        mSerializer.startTag("", TAG_PROPERTY);
-        mSerializer.attribute("", ATTRIBUTE_NAME, name);
-        mSerializer.attribute("", ATTRIBUTE_VALUE, value);        
-        mSerializer.endTag("", TAG_PROPERTY);
-        mSerializer.flush();
+        try
+            {
+            mSerializer.startTag("", "system-out");
+            //mSerializer.text(logMsgs.toString());
+            mSerializer.text("<![CDATA[");
+            for(String msg: logMsgs)
+                {
+                mSerializer.text(msg+"<br />\r\n");
+                }
+            mSerializer.text("]]>");
+            mSerializer.endTag("", "system-out");
+            }
+        catch (IllegalArgumentException e)
+            {
+            Log.e(LOG_TAG, safeMessage(e));
+            }
+        catch (IllegalStateException e)
+            {
+            Log.e(LOG_TAG, safeMessage(e));
+            }
+        catch (IOException e)
+            {
+            Log.e(LOG_TAG, safeMessage(e));
+            }
+        
         }
-    catch (IOException e)
+    
+    public static void addLogMessage(String msg)
         {
-        Log.e(LOG_TAG, safeMessage(e));
+        logMessages.add(msg);
         }
-    }
-    public String getVersion( ) {
+
+    public String getVersion()
+        {
         String version = "";
-        try {
-            PackageInfo pInfo =  mTargetContext.getPackageManager().getPackageInfo( mTargetContext.getPackageName(), PackageManager.GET_META_DATA);
+        try
+            {
+            PackageInfo pInfo = mTargetContext.getPackageManager().getPackageInfo(mTargetContext.getPackageName(),
+                    PackageManager.GET_META_DATA);
             version = pInfo.versionName;
-        } catch (NameNotFoundException e1) {
+            }
+        catch (NameNotFoundException e1)
+            {
             Log.e(LOG_TAG, safeMessage(e1));
-        }
+            }
         return version;
+        }
     }
-}
